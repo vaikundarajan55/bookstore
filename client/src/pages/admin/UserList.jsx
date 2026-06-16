@@ -234,7 +234,8 @@ function FileUploadZone({ initialValue, onChange }) {
           setProgress(100)
           setUploading(false)
           setPreviewUrl(resultUrl)
-          onChange(resultUrl)
+          // ✅ Pass both base64 url and original file
+          onChange({ url: resultUrl, file: file })
         } else {
           setProgress(currentProgress)
         }
@@ -245,10 +246,12 @@ function FileUploadZone({ initialValue, onChange }) {
 
   const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true) }
   const handleDragLeave = () => setIsDragging(false)
-  const handleDrop = (e) => { e.preventDefault(); setIsDragging(false); const file = e.dataTransfer.files?.[0]; processFile(file) }
+  const handleDrop = (e) => { e.preventDefault(); setIsDragging(false); 
+  const file = e.dataTransfer.files?.[0]; processFile(file) }
   const handleFileChange = (e) => { const file = e.target.files?.[0]; processFile(file) }
   const triggerSelect = () => fileInputRef.current?.click()
-  const removeImage = (e) => { e.stopPropagation(); setPreviewUrl(""); setProgress(0); onChange(""); if (fileInputRef.current) fileInputRef.current.value = "" }
+  const removeImage = (e) => { e.stopPropagation(); setPreviewUrl(""); setProgress(0); onChange({ url: "", file: null }); 
+  if (fileInputRef.current) fileInputRef.current.value = "" }
 
   return (
     <div className="space-y-2">
@@ -388,12 +391,13 @@ export default function UserList() {
   const initialFormState = {
     name: "",
     email: "",
-    phone: "",
+    mobile: "",
     password: "",
     confirmPassword: "",
     role: "Viewer",
     status: "Active",
-    image: ""
+    image: "",
+    imageFile: null
   }
 
   // ── Modal & Flow Control States ──
@@ -473,9 +477,9 @@ export default function UserList() {
       showToast("Email are required.", "error")
       return
     }
-    if(!addForm.phone)
+    if(!addForm.mobile)
     {
-       showToast("phone are required.", "error")
+       showToast("mobile are required.", "error")
       return
     }
     if(!addForm.password)
@@ -508,16 +512,22 @@ export default function UserList() {
   // Phase 2: Save addition and display success card modal 
   const executeAddSave = () => {
 
-    console.log(addForm.image,"check the image");
+    console.log("Image File:", addForm.imageFile);     // ✅ File object
+    console.log("Image Preview:", addForm.image)
     
 
     const formData = new FormData();
     formData.append("name", addForm.name);
     formData.append("email", addForm.email);
-    formData.append("phone", addForm.phone);
+    formData.append("mobile", addForm.mobile);
     formData.append("role", addForm.role);
     formData.append("status", addForm.status);
-    formData.append("image", addForm.image);
+    formData.append("password", addForm.password);
+
+    // ✅ Append actual file, not base64 string
+    if (addForm.imageFile) {
+        formData.append("image", addForm.imageFile); 
+    }
 
     const response = dispatch(addNewUser(formData));
     
@@ -543,7 +553,7 @@ export default function UserList() {
     setEditForm({ 
       name: user.name, 
       email: user.email, 
-      phone: user.phone || "",
+      mobile: user.mobile || "",
       password: "", 
       confirmPassword: "", 
       role: user.role, 
@@ -602,7 +612,7 @@ export default function UserList() {
       id: editingId,
       name: editForm.name,
       email: editForm.email,
-      phone: editForm.phone || "N/A",
+      mobile: editForm.mobile || "N/A",
       role: editForm.role,
       status: editForm.status,
       image: editForm.image
@@ -738,7 +748,7 @@ export default function UserList() {
                     <td className="px-6 py-4.5 text-xs font-semibold text-gray-400">{rowNumber}</td>
                     <td className="px-6 py-4.5">
                       <div className="flex items-center gap-3">
-                        <UserAvatar name={user.name} image={user.image} />
+                        <UserAvatar name={user.name} image={user.image_url} />
                         <div>
                           <p className="text-sm font-bold text-gray-900 leading-none">{user.name}</p>
                           <p className="text-xs text-gray-400 mt-1 font-medium">{user.phone || "No phone added"}</p>
@@ -758,9 +768,9 @@ export default function UserList() {
                       </span>
                     </td>
                     <td className="px-6 py-4.5 text-sm">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${user.status === "Active" ? "bg-green-50 text-green-700 border border-green-100" : "bg-rose-50 text-rose-700 border border-rose-100"}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${user.status === "Active" ? "bg-green-500" : "bg-rose-500"}`} />
-                        {user.status}
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${user.is_delete === "Active" ? "bg-green-50 text-green-700 border border-green-100" : "bg-rose-50 text-rose-700 border border-rose-100"}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${user.is_delete === "Active" ? "bg-green-500" : "bg-rose-500"}`} />
+                        {user.is_delete}
                       </span>
                     </td>
                     <td className="px-6 py-4.5 text-sm text-right">
@@ -861,7 +871,15 @@ export default function UserList() {
           {/* File Upload Zone */}
           <FileUploadZone 
             initialValue={addForm.image} 
-            onChange={(url) => updateFormField(setAddForm, "image", url)} 
+            /* onChange={(url) => updateFormField(setAddForm, "image", url)}  */
+            onChange={({ url, file }) => {
+                // ✅ Store both base64 and file
+                setAddForm(prev => ({ 
+                    ...prev, 
+                    image: url,       // for preview in success card
+                    imageFile: file   // for FormData upload
+                }))
+            }} 
           />
 
           <div className="grid grid-cols-2 gap-4">
@@ -896,16 +914,15 @@ export default function UserList() {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition bg-white"
               >
                 <option value="Admin">Admin</option>
-                <option value="Editor">Editor</option>
-                <option value="Viewer">Viewer</option>
+                <option value="User">User</option>
               </select>
             </div>
             <div className="col-span-2 sm:col-span-1">
               <label className="block text-xs font-bold uppercase text-gray-500 tracking-wider mb-1">Mobile Number</label>
               <input
                 type="text"
-                value={addForm.phone}
-                onChange={(e) => updateFormField(setAddForm, "phone", e.target.value)}
+                value={addForm.mobile}
+                onChange={(e) => updateFormField(setAddForm, "mobile", e.target.value)}
                 placeholder="+1 (555) 000-0000"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
               />
@@ -1011,16 +1028,15 @@ export default function UserList() {
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition bg-white"
               >
                 <option value="Admin">Admin</option>
-                <option value="Editor">Editor</option>
-                <option value="Viewer">Viewer</option>
+                <option value="User">User</option>
               </select>
             </div>
             <div className="col-span-2 sm:col-span-1">
               <label className="block text-xs font-bold uppercase text-gray-500 tracking-wider mb-1">Mobile Number</label>
               <input
                 type="text"
-                value={editForm.phone}
-                onChange={(e) => updateFormField(setEditForm, "phone", e.target.value)}
+                value={editForm.mobile}
+                onChange={(e) => updateFormField(setEditForm, "mobile", e.target.value)}
                 placeholder="+1 (555) 000-0000"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
               />
@@ -1047,32 +1063,6 @@ export default function UserList() {
                 placeholder="••••••••"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
               />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-bold uppercase text-gray-500 tracking-wider mb-1">Account Status</label>
-            <div className="flex gap-4">
-              <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-700">
-                <input 
-                  type="radio" 
-                  name="edit-status"
-                  checked={editForm.status === "Active"}
-                  onChange={() => updateFormField(setEditForm, "status", "Active")}
-                  className="text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300"
-                />
-                Active
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-gray-700">
-                <input 
-                  type="radio" 
-                  name="edit-status"
-                  checked={editForm.status === "Inactive"}
-                  onChange={() => updateFormField(setEditForm, "status", "Inactive")}
-                  className="text-indigo-600 focus:ring-indigo-500 h-4 w-4 border-gray-300"
-                />
-                Inactive
-              </label>
             </div>
           </div>
         </div>

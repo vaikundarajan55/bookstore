@@ -18,73 +18,73 @@ export const getAllUsersList = async (req, res) => {
 
 export const AddNewUsers = async (req, res) => {
     try {
-        console.log("req.body  :", req.body);  // ✅ Check all fields
-        console.log("req.file  :", req.file);  // ✅ Check file
-        console.log("req.user  :", req.user);  // ✅ Check auth user
+        console.log("req.body :", req.body);
+        console.log("req.file :", req.file);
+        console.log("req.user :", req.user);
 
-        const name    = req.body.name?.trim() || null;
-        const email   = req.body.email?.trim() || null;
-        const mobile  = req.body.phone?.trim() || null;
-        const password= req.body.password?.trim() || null; 
-        const file    = req.file;
-        console.log(req.image,"Test on the process");
-        
-        // 🔑 FIX: Use emp_id (matches DB FK)
+        const name     = req.body.name?.trim()     || null;
+        const email    = req.body.email?.trim()    || null;
+        const mobile   = req.body.mobile?.trim()    || null;
+        const password = req.body.password?.trim() || null;  // ✅ Fixed
+        const role     = req.body.role?.trim()     || "User";
+        const status   = req.body.status?.trim()   || "Active";
+        const file     = req.file || null;
+
+        console.log("Image File :", file?.filename); // ✅ Fixed: was req.image
+
         const empId = req.user?.user_id || null;
 
         // ===== VALIDATION =====
-        if (!name) {
-            return res.status(400).json({ message: "UserName is required" });
-        }
+        if (!name)     return res.status(400).json({ status: false, message: "Username is required" });
+        if (!email)    return res.status(400).json({ status: false, message: "Email is required" });
+        if (!mobile)   return res.status(400).json({ status: false, message: "Mobile is required" });
+        if (!password) return res.status(400).json({ status: false, message: "Password is required" }); // ✅ Prevents md5(null) crash
+        if (!empId)    return res.status(401).json({ status: false, message: "Invalid user session" });
+        if (!file)     return res.status(400).json({ status: false, message: "Profile image is required" });
 
-        if (!email) {
-            return res.status(400).json({ message: "User Email is required" });
-        }
-
-        if (!mobile) {
-            return res.status(400).json({ message: "User Mobile is required" });
-        }
-
-        if (!empId) {
-            return res.status(401).json({ message: "Invalid user session" });
-        }
-        if (!file)   return res.status(400).json({ message: "Profile image is required" });
-
-        // ===== VIDEO URL =====
+        // ===== BUILD IMAGE URL =====
         const imageUrl = `${req.protocol}://${req.get("host")}/uploads/files/${file.filename}`;
 
+        // ===== INSERT DATA =====
         const UserData = {
             name,
             email,
             mobile,
-            password : md5(password),
+            password:   md5(password),  // ✅ Safe — password validated above
+            role,
             user_image: file.filename,
-            image_url: imageUrl,
+            image_url:  imageUrl,
+            is_delete:  status,
             created_at: new Date(),
-            is_delete: 'Active',
-            role: 'User',
         };
+
         const result = await addNewUserData(UserData);
+
+        // ===== RESPONSE =====
         const AddUserData = {
-            id: result.insertId,
-            name: name,
-            email: email,
+            id:         result.insertId,
+            name,
+            email,
+            mobile,
+            role,
             user_image: file.filename,
-            image_url :imageUrl,
-            role: userlist,
-            is_delete: "Active",
+            image_url:  imageUrl,
+            is_delete:  status,
             created_at: new Date(),
-            role: 'User',
         };
-        //emitVideoRefresh();
-        res.status(201).json({
-            message: "New User Added successfully",
-            status: true,
+
+        return res.status(201).json({
+            status:     true,
+            message:    "New User Added Successfully",
             newAddUser: AddUserData,
         });
 
     } catch (error) {
         console.error("Upload error:", error);
-        return res.status(500).json({ message: "Failed to upload video" });
+        return res.status(500).json({ 
+            status:  false, 
+            message: "Failed to add user",
+            error:   error.message  // ✅ Shows actual error in response
+        });
     }
 };

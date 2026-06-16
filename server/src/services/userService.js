@@ -14,11 +14,11 @@ export const getAllUsersData = async () => {
     }
 };
 export const addNewUserData = async (UserData) => {
-        const { name, email, mobile, password, user_image,image_url,created_at,role } = videoData;
+        const { name, email, mobile, password, user_image,image_url,created_at,role } = UserData;
 
     try {
         const [rows] = await pool.execute(
-            `INSERT INTO workflow_videolist (name, email, mobile, password, user_image,image_url,created_at,role) VALUES (?, ?, ?, ?,?, ?, ?, ?)`,
+            `INSERT INTO users (name, email, mobile, password, user_image,image_url,created_at,role) VALUES (?, ?, ?, ?,?, ?, ?, ?)`,
             [name, email, mobile, password, user_image,image_url,created_at,role]
         );
         return rows;
