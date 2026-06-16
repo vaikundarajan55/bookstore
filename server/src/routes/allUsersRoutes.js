@@ -5,6 +5,6 @@ import { getAllUsersList, AddNewUsers } from "../controllers/userController.js";
 const router = express.Router();
 
 router.get("/getallusers", auth, getAllUsersList);
-router.post("/addneweuser", auth, upload.single("files"), AddNewUsers)
+router.post("/addneweuser", auth, upload.single("image"), AddNewUsers);
 
 export default router;

@@ -1,4 +1,4 @@
-import { getAllUsersData } from "../services/userService.js";
+import { getAllUsersData , addNewUserData} from "../services/userService.js";
 import md5 from "md5";
 
 export const getAllUsersList = async (req, res) => {
@@ -18,15 +18,17 @@ export const getAllUsersList = async (req, res) => {
 
 export const AddNewUsers = async (req, res) => {
     try {
+        console.log("req.body  :", req.body);  // ✅ Check all fields
+        console.log("req.file  :", req.file);  // ✅ Check file
+        console.log("req.user  :", req.user);  // ✅ Check auth user
+
         const name    = req.body.name?.trim() || null;
         const email   = req.body.email?.trim() || null;
         const mobile  = req.body.phone?.trim() || null;
         const password= req.body.password?.trim() || null; 
-        const file = req.file;
-
-        console.log(file,"filename");
+        const file    = req.file;
+        console.log(req.image,"Test on the process");
         
-
         // 🔑 FIX: Use emp_id (matches DB FK)
         const empId = req.user?.user_id || null;
 
@@ -46,12 +48,12 @@ export const AddNewUsers = async (req, res) => {
         if (!empId) {
             return res.status(401).json({ message: "Invalid user session" });
         }
+        if (!file)   return res.status(400).json({ message: "Profile image is required" });
 
         // ===== VIDEO URL =====
         const imageUrl = `${req.protocol}://${req.get("host")}/uploads/files/${file.filename}`;
 
-        const filename = file.filename;
-        const videoData = {
+        const UserData = {
             name,
             email,
             mobile,
@@ -59,9 +61,10 @@ export const AddNewUsers = async (req, res) => {
             user_image: file.filename,
             image_url: imageUrl,
             created_at: new Date(),
-            is_delete: 'Active'
+            is_delete: 'Active',
+            role: 'User',
         };
-        const result = await addUploadVideoList(videoData);
+        const result = await addNewUserData(UserData);
         const AddUserData = {
             id: result.insertId,
             name: name,
@@ -71,6 +74,7 @@ export const AddNewUsers = async (req, res) => {
             role: userlist,
             is_delete: "Active",
             created_at: new Date(),
+            role: 'User',
         };
         //emitVideoRefresh();
         res.status(201).json({

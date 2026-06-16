@@ -508,6 +508,9 @@ export default function UserList() {
   // Phase 2: Save addition and display success card modal 
   const executeAddSave = () => {
 
+    console.log(addForm.image,"check the image");
+    
+
     const formData = new FormData();
     formData.append("name", addForm.name);
     formData.append("email", addForm.email);
