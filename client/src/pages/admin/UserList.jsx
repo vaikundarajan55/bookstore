@@ -1,7 +1,7 @@
 import { useMemo, useState, useRef, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useDispatch, useSelector } from "react-redux"
-import { getAllUsers,addNewUser } from "../../Redux/slices/alluserSlice"
+import { getAllUsers,addNewUser,EditNewUser,deleteUser } from "../../Redux/slices/alluserSlice"
 
 // ── Animated Modal Shell ────────────────────────────────────────────────────
 function Modal({ open, onClose, children }) {
@@ -549,20 +549,21 @@ export default function UserList() {
   }
 
   // ── FLOW: EDIT USER ───────────────────────────────────────────────────────
-  const openEdit = (user) => { 
+ const openEdit = (user) => { 
     setEditForm({ 
-      name: user.name, 
-      email: user.email, 
-      mobile: user.mobile || "",
-      password: "", 
-      confirmPassword: "", 
-      role: user.role, 
-      status: user.status, 
-      image: user.image || ""
+      name:            user.name, 
+      email:           user.email, 
+      mobile:          user.mobile || "",
+      password:        user.password,
+      confirmPassword: user.password, 
+      role:            user.role, 
+      status:          user.is_delete,       // ✅ was using wrong field
+      image:           user.image_url || "", // ✅ show existing image in upload zone
+      imageFile:       null
     })
     setEditingId(user.id)
     setEditOpen(true) 
-  }
+}
 
   // Phase 1: Show Diff Comparison inside verification popup before committing 
   const initiateEditConfirm = () => {
@@ -576,7 +577,7 @@ export default function UserList() {
     }
 
     // Dynamic verification algorithm: Diffing changed properties
-    const original = users.find(u => u.id === editingId)
+    const original = allUsers.find(u => u.id === editingId)
     const detectedChanges = []
     if (original) {
       if (original.name !== editForm.name) detectedChanges.push({ field: "Name", from: original.name, to: editForm.name })
@@ -607,55 +608,69 @@ export default function UserList() {
   }
 
   // Phase 2: Apply changes and trigger visual receipt 
-  const executeEditSave = (changesApplied) => {
-    const updatedUser = {
-      id: editingId,
-      name: editForm.name,
-      email: editForm.email,
-      mobile: editForm.mobile || "N/A",
-      role: editForm.role,
-      status: editForm.status,
-      image: editForm.image
+const executeEditSave = async (changesApplied) => {
+    const formData = new FormData();
+    formData.append("id",     editingId);
+    formData.append("name",   editForm.name);
+    formData.append("email",  editForm.email);
+    formData.append("mobile", editForm.mobile);
+    formData.append("role",   editForm.role);
+    formData.append("status", editForm.status);
+
+    if (editForm.password) {
+        formData.append("password", editForm.password); // only if changed
     }
 
-    setUsers(prev => prev.map(u => u.id === editingId ? { ...u, ...updatedUser } : u))
-    setEditOpen(false) // Hide form layout sheet
+    // ✅ Send new file if uploaded, else keep existing
+    if (editForm.imageFile) {
+        formData.append("image", editForm.imageFile);
+    }
+     const Editres =  dispatch(EditNewUser(formData));
 
-    // Show Success visual validation layout
+    setEditOpen(false)
+
     setConfirmState({
-      open: true,
-      type: "success",
-      title: "Profile Modifications Applied!",
-      message: `${editForm.name}'s account has been successfully configured.`,
-      confirmLabel: "Return to Users",
-      onConfirm: () => setConfirmState(p => ({ ...p, open: false })),
-      onCancel: null,
-      userPreview: updatedUser
+        open:         true,
+        type:         "success",
+        title:        "Profile Modifications Applied!",
+        message:      `${editForm.name}'s account has been successfully updated.`,
+        confirmLabel: "Return to Users",
+        onConfirm:    () => setConfirmState(p => ({ ...p, open: false })),
+        onCancel:     null,
+        userPreview: {
+            name:   editForm.name,
+            email:  editForm.email,
+            role:   editForm.role,
+            image:  editForm.image  // ✅ base64 preview in success card
+        }
     })
     showToast(`${editForm.name} profile modified.`)
-  }
+}
 
   // ── FLOW: DELETE USER ─────────────────────────────────────────────────────
   const askDelete = (userId) => {
-    const user = users.find(u => u.id === userId)
+    const user = allUsers.find(u => u.id === userId)
     setConfirmState({
       open: true,
       type: "danger",
       title: `Permanently Delete ${user?.name || "User"}?`,
       message: "This operation is irreversible. The record and associated authentication details will be permanently wiped.",
       confirmLabel: "Delete Record",
+      changes:      [],
+      userPreview:  null,
       onCancel: () => {
-        setConfirmState(p => ({ ...p, open: false }))
-        showToast("Deletion canceled.", "error")
+          setConfirmState(p => ({ ...p, open: false }))
+          showToast("Deletion canceled.", "error")
       },
       onConfirm: () => executeDelete(userId)
     })
   }
 
   const executeDelete = (userId) => {
-    setUsers(prev => prev.filter(u => u.id !== userId))
+    dispatch(deleteUser(userId))
     setConfirmState(p => ({ ...p, open: false }))
     showToast("User record permanently purged.", "success")
+    dispatch(getAllUsers())
   }
 
   const updateFormField = (setter, key, val) => {
@@ -990,10 +1005,16 @@ export default function UserList() {
 
         {/* Body */}
         <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
-          {/* File Upload Zone */}
+         
           <FileUploadZone 
-            initialValue={editForm.image} 
-            onChange={(url) => updateFormField(setEditForm, "image", url)} 
+              initialValue={editForm.image}   
+              onChange={({ url, file }) => {  {/* ✅ Fixed: was receiving string, now object */}
+                  setEditForm(prev => ({ 
+                      ...prev, 
+                      image:     url,   // base64 for preview
+                      imageFile: file   // File object for FormData
+                  }))
+              }} 
           />
 
           <div className="grid grid-cols-2 gap-4">
@@ -1047,7 +1068,7 @@ export default function UserList() {
             <div className="col-span-2 sm:col-span-1">
               <label className="block text-xs font-bold uppercase text-gray-500 tracking-wider mb-1">New Password (Optional)</label>
               <input
-                type="password"
+                type="text"
                 value={editForm.password}
                 onChange={(e) => updateFormField(setEditForm, "password", e.target.value)}
                 placeholder="••••••••"
@@ -1057,7 +1078,7 @@ export default function UserList() {
             <div className="col-span-2 sm:col-span-1">
               <label className="block text-xs font-bold uppercase text-gray-500 tracking-wider mb-1">Confirm New Password</label>
               <input
-                type="password"
+                type="text"
                 value={editForm.confirmPassword}
                 onChange={(e) => updateFormField(setEditForm, "confirmPassword", e.target.value)}
                 placeholder="••••••••"
