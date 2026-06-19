@@ -366,10 +366,7 @@ export default function UserList() {
   const dispatch = useDispatch();
 
   const [addOpenModel, setAddOpenModel] = useState(false)
-
   const allUsers = useSelector((state) => state.alluser?.allusers ?? []);
-  console.log(allUsers,"alluserlist");
-  
 
   useEffect(() => {
        dispatch(getAllUsers());
@@ -386,7 +383,6 @@ export default function UserList() {
       image: ""
   });
 
-  
   // ── Form State Blueprints ──
   const initialFormState = {
     name: "",
@@ -406,6 +402,7 @@ export default function UserList() {
   const [addForm, setAddForm]       = useState(initialFormState)
   const [editForm, setEditForm]     = useState(initialFormState)
   const [editingId, setEditingId]   = useState(null)
+  const [errors, setErrors] = useState({});
 
   // ── Flow Dialog Specific States ──
   const [confirmState, setConfirmState] = useState({
@@ -469,34 +466,41 @@ export default function UserList() {
 
   // Phase 1: Ask user confirmation to add the profile
   const initiateAddConfirm = () => {
-    if (!addForm.name) {
-      showToast("Full Name are required.", "error")
-      return
-    }
-    if(!addForm.email){
-      showToast("Email are required.", "error")
-      return
-    }
-    if(!addForm.mobile)
-    {
-       showToast("mobile are required.", "error")
-      return
-    }
-    if(!addForm.password)
-    {
-       showToast("password are required.", "error")
-      return
-    }
-    if(!addForm.confirmPassword)
-    {
-       showToast("confirmPassword are required.", "error")
-      return
+    const newErrors = {};
+      if (!addForm.name.trim()) {
+      newErrors.name = "Full Name is required";
     }
 
-    if (addForm.password !== addForm.confirmPassword) {
-      showToast("Passwords do not match.", "error")
-      return
+    if (!addForm.email.trim()) {
+      newErrors.email = "Email is required";
     }
+
+    if (!addForm.mobile.trim()) {
+      newErrors.mobile = "Mobile Number is required";
+    }
+
+    if (!addForm.password) {
+      newErrors.password = "Password is required";
+    }
+
+    if (!addForm.confirmPassword) {
+      newErrors.confirmPassword = "Confirm Password is required";
+    }
+
+    if (
+      addForm.password &&
+      addForm.confirmPassword &&
+      addForm.password !== addForm.confirmPassword
+    ) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
 
     setConfirmState({
       open: true,
@@ -511,11 +515,6 @@ export default function UserList() {
 
   // Phase 2: Save addition and display success card modal 
   const executeAddSave = () => {
-
-    console.log("Image File:", addForm.imageFile);     // ✅ File object
-    console.log("Image Preview:", addForm.image)
-    
-
     const formData = new FormData();
     formData.append("name", addForm.name);
     formData.append("email", addForm.email);
@@ -903,10 +902,14 @@ const executeEditSave = async (changesApplied) => {
               <input
                 type="text"
                 value={addForm.name}
-                onChange={(e) => updateFormField(setAddForm, "name", e.target.value)}
+                onChange={(e) => { updateFormField(setAddForm, "name", e.target.value);
+                  setErrors(prev => ({ ...prev, name: "" }));
+                }}
                 placeholder="Alex Johnson"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                
+                className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm ${ errors.name ? "border-red-500" : "border-gray-300"}`}
               />
+              {errors.name && (<p className="text-red-500 text-xs mt-1">{errors.name}</p>)}
             </div>
             <div className="col-span-2 sm:col-span-1">
               <label className="block text-xs font-bold uppercase text-gray-500 tracking-wider mb-1">Email Address</label>
@@ -915,8 +918,9 @@ const executeEditSave = async (changesApplied) => {
                 value={addForm.email}
                 onChange={(e) => updateFormField(setAddForm, "email", e.target.value)}
                 placeholder="alex@example.com"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm ${ errors.email ? "border-red-500" : "border-gray-300"}`}
               />
+              {errors.email && (<p className="text-red-500 text-xs mt-1">{errors.email}</p>)}
             </div>
           </div>
 
@@ -926,11 +930,12 @@ const executeEditSave = async (changesApplied) => {
               <select
                 value={addForm.role}
                 onChange={(e) => updateFormField(setAddForm, "role", e.target.value)}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition bg-white"
+                 className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm ${ errors.email ? "border-red-500" : "border-gray-300"}`}
               >
                 <option value="Admin">Admin</option>
                 <option value="User">User</option>
               </select>
+              {errors.role && (<p className="text-red-500 text-xs mt-1">{errors.role}</p>)}
             </div>
             <div className="col-span-2 sm:col-span-1">
               <label className="block text-xs font-bold uppercase text-gray-500 tracking-wider mb-1">Mobile Number</label>
@@ -939,8 +944,9 @@ const executeEditSave = async (changesApplied) => {
                 value={addForm.mobile}
                 onChange={(e) => updateFormField(setAddForm, "mobile", e.target.value)}
                 placeholder="+1 (555) 000-0000"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                 className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm ${ errors.mobile ? "border-red-500" : "border-gray-300"}`}
               />
+              {errors.mobile && (<p className="text-red-500 text-xs mt-1">{errors.mobile}</p>)}
             </div>
           </div>
 
@@ -952,8 +958,9 @@ const executeEditSave = async (changesApplied) => {
                 value={addForm.password}
                 onChange={(e) => updateFormField(setAddForm, "password", e.target.value)}
                 placeholder="••••••••"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                 className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm ${ errors.password ? "border-red-500" : "border-gray-300"}`}
               />
+              {errors.password && (<p className="text-red-500 text-xs mt-1">{errors.password}</p>)}
             </div>
             <div className="col-span-2 sm:col-span-1">
               <label className="block text-xs font-bold uppercase text-gray-500 tracking-wider mb-1">Confirm Password</label>
@@ -962,8 +969,9 @@ const executeEditSave = async (changesApplied) => {
                 value={addForm.confirmPassword}
                 onChange={(e) => updateFormField(setAddForm, "confirmPassword", e.target.value)}
                 placeholder="••••••••"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition"
+                 className={`w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition text-sm ${ errors.confirmPassword ? "border-red-500" : "border-gray-300"}`}
               />
+              {errors.confirmPassword && (<p className="text-red-500 text-xs mt-1">{errors.confirmPassword}</p>)}
             </div>
           </div>
         </div>

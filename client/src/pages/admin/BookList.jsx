@@ -425,7 +425,7 @@ function UserAvatar({ name, image, className = "w-10 h-10" }) {
 }
 
 // ── Main App Component ───────────────────────────────────────────────────────
-export default function App() {
+export default function BookList() {
   const dispatch = useDispatch();
 
   const [addOpenModel, setAddOpenModel] = useState(false)
