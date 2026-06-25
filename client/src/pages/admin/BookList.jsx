@@ -1,73 +1,9 @@
 import { useMemo, useState, useRef, useEffect, createContext, useContext } from "react"
 import { motion, AnimatePresence } from "framer-motion"
+import { getAllBooks, addNewBook } from "../../Redux/slices/allbookSlice"
+import { useDispatch, useSelector } from "react-redux"
+import * as Yup from 'yup';
 
-// ── MOCK REDUX SIMULATOR (Makes file 100% runnable in Canvas Preview) ───────
-const InitialUsers = [
-  { id: 1, name: "Arlene McCoy", email: "arlene.mccoy@example.com", phone: "+1 (205) 555-0118", role: "Admin", status: "Active", image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150" },
-  { id: 2, name: "Eleanor Pena", email: "eleanor.pena@example.com", phone: "+1 (206) 555-0143", role: "Manager", status: "Active", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" },
-  { id: 3, name: "Philip Edwards", email: "philip.edwards@example.com", phone: "+1 (207) 555-0199", role: "Viewer", status: "Inactive", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150" },
-  { id: 4, name: "Jenny Wilson", email: "jenny.wilson@example.com", phone: "+1 (208) 555-0156", role: "Viewer", status: "Active", image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150" },
-  { id: 5, name: "Albert Flores", email: "albert.flores@example.com", phone: "+1 (209) 555-0122", role: "Manager", status: "Inactive", image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150" }
-];
-
-// Simple in-memory Redux state simulator
-let globalUsersState = [...InitialUsers];
-const listeners = new Set();
-
-const updateGlobalState = (newUsers) => {
-  globalUsersState = newUsers;
-  listeners.forEach(listener => listener(globalUsersState));
-};
-
-// Dispatch Action Creators
-export const getAllUsers = () => (dispatch) => {
-  dispatch({ type: "GET_ALL_USERS", payload: globalUsersState });
-};
-
-export const addNewUser = (user) => (dispatch) => {
-  const updated = [user, ...globalUsersState];
-  updateGlobalState(updated);
-  dispatch({ type: "ADD_NEW_USER", payload: user });
-};
-
-export const editUserAction = (updatedUser) => (dispatch) => {
-  const updated = globalUsersState.map(u => u.id === updatedUser.id ? updatedUser : u);
-  updateGlobalState(updated);
-  dispatch({ type: "EDIT_USER", payload: updatedUser });
-};
-
-export const deleteUserAction = (userId) => (dispatch) => {
-  const updated = globalUsersState.filter(u => u.id !== userId);
-  updateGlobalState(updated);
-  dispatch({ type: "DELETE_USER", payload: userId });
-};
-
-// Simple Mock useDispatch & useSelector Hooks
-export function useDispatch() {
-  return (actionOrFn) => {
-    if (typeof actionOrFn === "function") {
-      actionOrFn((action) => {
-        // Redux state update placeholder
-      });
-    }
-  };
-}
-
-export function useSelector(selectorFn) {
-  const [, forceUpdate] = useState({});
-  useEffect(() => {
-    const handleChange = () => forceUpdate({});
-    listeners.add(handleChange);
-    return () => listeners.delete(handleChange);
-  }, []);
-  
-  const simulatedState = {
-    alluser: {
-      allusers: globalUsersState
-    }
-  };
-  return selectorFn(simulatedState);
-}
 
 // ── Animated Modal Shell ────────────────────────────────────────────────────
 function Modal({ open, onClose, children }) {
@@ -427,9 +363,11 @@ function UserAvatar({ name, image, className = "w-10 h-10" }) {
 // ── Main App Component ───────────────────────────────────────────────────────
 export default function BookList() {
   const dispatch = useDispatch();
-
+  const [formErrors, setFormErrors] = useState({});
   const [addOpenModel, setAddOpenModel] = useState(false)
   const allBooks = useSelector((state) => state.allbook?.allbooks ?? []);
+  console.log(allBooks,"allBooks");
+  
 
   useEffect(() => {
     dispatch(getAllBooks());
@@ -483,10 +421,11 @@ export default function BookList() {
     const term = search.toLowerCase().trim()
     if (!term) return allBooks
     return allBooks.filter(u =>
-      u.name.toLowerCase().includes(term) ||
-      u.email.toLowerCase().includes(term) ||
-      u.role.toLowerCase().includes(term) ||
-      u.status.toLowerCase().includes(term)
+      u.book_name.toLowerCase().includes(term) ||
+      u.book_author.toLowerCase().includes(term) ||
+      u.book_price.toLowerCase().includes(term) ||
+      u.book_year.toLowerCase().includes(term) ||
+      u.is_delete.toLowerCase().includes(term)
     )
   }, [allBooks, search])
 
@@ -513,83 +452,94 @@ export default function BookList() {
     setAddOpenModel(true) 
   }
 
-  const initiateAddConfirm = () => {
-    if (!addForm.name) {
-      showToast("Full Name is required.", "error")
-      return
-    }
-    if (!addForm.email) {
-      showToast("Email is required.", "error")
-      return
-    }
-    if (!addForm.phone) {
-      showToast("Phone is required.", "error")
-      return
-    }
-    if (!addForm.password) {
-      showToast("Password is required.", "error")
-      return
-    }
-    if (!addForm.confirmPassword) {
-      showToast("Please confirm your password.", "error")
-      return
-    }
-    if (addForm.password !== addForm.confirmPassword) {
-      showToast("Passwords do not match.", "error")
-      return
-    }
+  const bookValidationSchema = Yup.object().shape({
+    image: Yup.mixed().required("Book Image is required"),
+    book_name: Yup.string().trim().required("Book Name is required"),
+    book_price: Yup.string()
+      .trim()
+      .required("Book Price is required")
+      .matches(/^\d+(\.\d{1,2})?$/, "Enter a valid price (e.g. 199 or 19.99)"),
+    book_author: Yup.string().trim().required("Book Author is required"),
+    book_year: Yup.string()
+      .trim()
+      .required("Book Year is required")
+      .matches(/^\d{4}$/, "Enter a valid 4-digit year"),
+  });
 
-    setConfirmState({
-      open: true,
-      type: "info",
-      title: "Add New User Account?",
-      message: `Are you sure you want to register ${addForm.name} as a new system ${addForm.role}?`,
-      confirmLabel: "Yes, Register User",
-      onCancel: () => setConfirmState(p => ({ ...p, open: false })),
-      onConfirm: executeAddSave
-    })
-  }
+  // ─── Initiate (Validate → Confirm Dialog) ────────────────────────────
+  const initiateAddConfirm = async () => {
+    try {
+      await bookValidationSchema.validate(addForm, { abortEarly: true });
 
-  const executeAddSave = () => {
-    const newUser = { 
-      id: Date.now(), 
-      name: addForm.name,
-      email: addForm.email,
-      phone: addForm.phone || "N/A",
-      role: addForm.role,
-      status: addForm.status,
-      image: addForm.image
+      // ✅ Validation passed → show confirm dialog
+      setConfirmState({
+        open: true,
+        type: "info",
+        title: "Add New Book?",
+        message: `Are you sure you want to add "${addForm.book_name}"?`,
+        confirmLabel: "Yes, Add Book",
+        onCancel: () => setConfirmState(p => ({ ...p, open: false })),
+        onConfirm: executeAddSave
+      });
+
+    } catch (err) {
+      if (err instanceof Yup.ValidationError) {
+        showToast(err.message, "error"); // shows first error
+      }
     }
+  };
 
-    dispatch(addNewUser(newUser));
-    setAddOpenModel(false) 
-    
-    setConfirmState({
-      open: true,
-      type: "success",
-      title: "User Registered Successfully!",
-      message: `${addForm.name} has been successfully added with the parameters listed below.`,
-      confirmLabel: "Done & Continue",
-      onConfirm: () => setConfirmState(p => ({ ...p, open: false })),
-      onCancel: null,
-      userPreview: newUser
-    })
-    showToast(`${newUser.name} created!`, "success")
-  }
+  // ─── Execute Save (FormData API Call) ────────────────────────────────
+  const executeAddSave = async () => {
+    try {
+      // Build FormData
+      const formData = new FormData();
+      formData.append("book_name",   addForm.book_name);
+      formData.append("book_price",  addForm.book_price);
+      formData.append("book_author", addForm.book_author);
+      formData.append("book_year",   addForm.book_year);
 
+      // Append actual file (not base64)
+      if (addForm.imageFile) {
+        formData.append("image", addForm.imageFile); // key must match your API
+      }
+
+
+     const savedBook = dispatch(addNewBook(formData));
+         
+      // Close modal
+      setAddOpenModel(false);
+
+      // Success confirm dialog
+      setConfirmState({
+        open: true,
+        type: "success",
+        title: "Book Added Successfully!",
+        message: `"${addForm.book_name}" has been successfully added.`,
+        confirmLabel: "Done",
+        onConfirm: () => setConfirmState(p => ({ ...p, open: false })),
+        onCancel: null,
+        userPreview: savedBook
+      });
+
+      showToast(`"${addForm.book_name}" added!`, "success");
+      setAddForm(initialFormState);
+
+    } catch (err) {
+      showToast(err.message || "Something went wrong.", "error");
+    }
+  };
   // ── FLOW: EDIT USER ───────────────────────────────────────────────────────
   const openEdit = (user) => { 
     setEditForm({ 
-      name: user.name, 
-      email: user.email, 
-      phone: user.phone || "",
-      password: "", 
-      confirmPassword: "", 
-      role: user.role, 
-      status: user.status, 
-      image: user.image || ""
+      book_name: user.book_name, 
+      book_price: user.book_price, 
+      book_year: user.book_year,
+      book_author: user.book_author, 
+      is_delete: user.is_delete, 
+      book_image: user.book_image || ""
     })
-    setEditingId(user.id)
+    setEditingId(user.book_id)
     setEditOpen(true) 
   }
 
@@ -603,10 +553,10 @@ export default function BookList() {
       return
     }
 
-    const original = allUsers.find(u => u.id === editingId)
+    const original = allBooks.find(u => u.id === editingId)
     const detectedChanges = []
     if (original) {
-      if (original.name !== editForm.name) detectedChanges.push({ field: "Name", from: original.name, to: editForm.name })
+      if (original.book_name !== editForm.book_name) detectedChanges.push({ field: "Name", from: original.book_name, to: editForm.book_name })
       if (original.email !== editForm.email) detectedChanges.push({ field: "Email", from: original.email, to: editForm.email })
       if (original.role !== editForm.role) detectedChanges.push({ field: "Role", from: original.role, to: editForm.role })
       if (original.status !== editForm.status) detectedChanges.push({ field: "Status", from: original.status, to: editForm.status })
@@ -661,7 +611,7 @@ export default function BookList() {
 
   // ── FLOW: DELETE USER ─────────────────────────────────────────────────────
   const askDelete = (userId) => {
-    const user = allUsers.find(u => u.id === userId)
+    const user = allBooks.find(u => u.id === userId)
     setConfirmState({
       open: true,
       type: "danger",
@@ -886,64 +836,128 @@ export default function BookList() {
           </div>
 
           <div className="space-y-4.5 py-4 overflow-y-auto max-h-[70vh] px-1">
-            <FileUploadZone initialValue={addForm.image} onChange={(url) => updateFormField(setAddForm, "image", url)} />
-            
+
+            {/* ── Image Upload ── */}
+            <div>
+              <FileUploadZone
+                initialValue={addForm.image}
+                onChange={({ url, file }) => {
+                  setAddForm(prev => ({ ...prev, image: url, imageFile: file }));
+                  setFormErrors(prev => ({ ...prev, image: "" })); // clear on change
+                }}
+              />
+              {formErrors.image && (
+                <p className="text-xs text-red-500 mt-1 ml-1">{formErrors.image}</p>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              {/* ── Book Name ── */}
               <div>
                 <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Book Name *</label>
                 <input
                   type="text"
-                  value={addForm.name}
-                  onChange={(e) => updateFormField(setAddForm, "name", e.target.value)}
+                  value={addForm.book_name}
+                  onChange={(e) => {
+                    updateFormField(setAddForm, "book_name", e.target.value);
+                    setFormErrors(prev => ({ ...prev, book_name: "" })); // clear on change
+                  }}
                   placeholder="Book Name"
-                  className="w-full border border-gray-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className={`w-full border rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:outline-none
+                    ${formErrors.book_name
+                      ? "border-red-400 focus:ring-red-400"
+                      : "border-gray-200 focus:ring-indigo-500"
+                    }`}
                 />
+                {formErrors.book_name && (
+                  <p className="text-xs text-red-500 mt-1 ml-1">{formErrors.book_name}</p>
+                )}
               </div>
+
+              {/* ── Book Price ── */}
               <div>
-                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Book Prize *</label>
+                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Book Price *</label>
                 <input
                   type="text"
-                  value={addForm.phone}
-                  onChange={(e) => updateFormField(setAddForm, "phone", e.target.value)}
-                  placeholder="Book Prize"
-                  className="w-full border border-gray-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  value={addForm.book_price}
+                  onChange={(e) => {
+                    updateFormField(setAddForm, "book_price", e.target.value);
+                    setFormErrors(prev => ({ ...prev, book_price: "" }));
+                  }}
+                  placeholder="Book Price"
+                  className={`w-full border rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:outline-none
+                    ${formErrors.book_price
+                      ? "border-red-400 focus:ring-red-400"
+                      : "border-gray-200 focus:ring-indigo-500"
+                    }`}
                 />
+                {formErrors.book_price && (
+                  <p className="text-xs text-red-500 mt-1 ml-1">{formErrors.book_price}</p>
+                )}
               </div>
+
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              {/* ── Book Year ── */}
               <div>
                 <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Book Year</label>
                 <input
                   type="text"
-                  value={addForm.email}
-                  onChange={(e) => updateFormField(setAddForm, "email", e.target.value)}
+                  value={addForm.book_year}
+                  onChange={(e) => {
+                    updateFormField(setAddForm, "book_year", e.target.value);
+                    setFormErrors(prev => ({ ...prev, book_year: "" }));
+                  }}
                   placeholder="Book Year"
-                  className="w-full border border-gray-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className={`w-full border rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:outline-none
+                    ${formErrors.book_year
+                      ? "border-red-400 focus:ring-red-400"
+                      : "border-gray-200 focus:ring-indigo-500"
+                    }`}
                 />
+                {formErrors.book_year && (
+                  <p className="text-xs text-red-500 mt-1 ml-1">{formErrors.book_year}</p>
+                )}
               </div>
+
+              {/* ── Book Author ── */}
               <div>
                 <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Book Author</label>
                 <input
                   type="text"
-                  value={addForm.email}
-                  onChange={(e) => updateFormField(setAddForm, "email", e.target.value)}
+                  value={addForm.book_author}
+                  onChange={(e) => {
+                    updateFormField(setAddForm, "book_author", e.target.value);
+                    setFormErrors(prev => ({ ...prev, book_author: "" }));
+                  }}
                   placeholder="Book Author"
-                  className="w-full border border-gray-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  className={`w-full border rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:outline-none
+                    ${formErrors.book_author
+                      ? "border-red-400 focus:ring-red-400"
+                      : "border-gray-200 focus:ring-indigo-500"
+                    }`}
                 />
+                {formErrors.book_author && (
+                  <p className="text-xs text-red-500 mt-1 ml-1">{formErrors.book_author}</p>
+                )}
               </div>
+
             </div>
           </div>
+
           <div className="flex justify-end gap-2.5 pt-4 border-t border-gray-100">
             <button
-              onClick={() => setAddOpenModel(false)}
+              onClick={() => { setAddOpenModel(false); setFormErrors({}); }}
               className="px-4 py-2 text-sm font-semibold rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 transition"
             >
               Cancel
             </button>
             <button
               onClick={initiateAddConfirm}
-              className="px-5 py-2 text-sm font-semibold rounded-xl bg-indigo-600 text-white shadow-sm hover:bg-indigo-750 transition"
+              className="px-5 py-2 text-sm font-semibold rounded-xl bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 transition"
             >
               Save Book
             </button>

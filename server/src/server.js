@@ -1,6 +1,7 @@
 import express from "express";
 import authRoutes from "./routes/authRoutes.js";
 import allUsersRoutes from "./routes/allUsersRoutes.js";
+import allBookRoutes from "./routes/allBookRoutes.js";
 
 import { createSocketServer } from "./socket/socket.js";
 import dotenv from 'dotenv';
@@ -28,6 +29,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/allusers', allUsersRoutes);
+app.use('/api/allbooks', allBookRoutes);
 
 // --- Create HTTP server ---
 const server = http.createServer(app);

@@ -18,7 +18,7 @@ export const getAllUsers = createAsyncThunk(
             });
             return response.data;
         } catch (error) {
-            const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch videos.';
+            const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch Users.';
             return rejectWithValue(errorMessage);
         }
     }

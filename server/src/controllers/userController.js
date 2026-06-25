@@ -12,7 +12,7 @@ export const getAllUsersList = async (req, res) => {
         });
     } catch (error) {
         console.error("Fetch error:", error);
-        return res.status(500).json({ message: "Failed to fetch videos" });
+        return res.status(500).json({ message: "Failed to fetch Users" });
     }
 };
 
