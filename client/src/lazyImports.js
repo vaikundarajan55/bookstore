@@ -1,5 +1,6 @@
 import { lazy } from 'react'
 
+export const Home = lazy(() => import("./pages/website/Home"));
 export const MainLayout = lazy(() => import('./layouts/MainLayout'))
 export const Login    = lazy(() => import('./pages/admin/Login'))
 export const Dashboard = lazy(() => import('./pages/admin/Dashboard'))

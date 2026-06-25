@@ -4,8 +4,8 @@ import { useNavigate, useLocation } from 'react-router-dom'   // ← add
 
 const navItems = [
   { icon: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z M9 22V12h6v10', label: 'Dashboard',    path: '/dashboard' },
-  { icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75', label: 'Users',         path: '/userlist' },
-  { icon: 'M18 20V10 M12 20V4 M6 20v-6',                                                           label: 'BookList',    path: '/booklist' },
+  { icon: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M23 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75', label: 'Users',         path: '/admin/userlist' },
+  { icon: 'M18 20V10 M12 20V4 M6 20v-6',                                                           label: 'BookList',    path: '/admin/booklist' },
   { icon: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8', label: 'Reports', path: '/reports' },
   { icon: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z',                       label: 'Messages',     path: '/messages',  badge: 3 },
   { icon: 'M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z',                               label: 'Integrations', path: '/integrations' },

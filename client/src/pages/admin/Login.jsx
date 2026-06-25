@@ -73,7 +73,7 @@ function Login() {
           console.log('Login successful:', result);
           setSuccess(true);
 
-          navigate("/dashboard");
+          navigate("/admin/dashboard");
 
       } catch (err) {
           setErrors({

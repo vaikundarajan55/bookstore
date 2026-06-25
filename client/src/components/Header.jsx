@@ -20,7 +20,7 @@ function Header({ sidebarOpen }) {
   const handleLogout = async () => {
     setProfileOpen(false)
     await dispatch(logoutUser())
-    navigate('/login')
+    navigate('/admin')
   }
 
   return (

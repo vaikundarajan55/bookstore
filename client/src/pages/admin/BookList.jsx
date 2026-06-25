@@ -1,6 +1,6 @@
 import { useMemo, useState, useRef, useEffect, createContext, useContext } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { getAllBooks, addNewBook } from "../../Redux/slices/allbookSlice"
+import { getAllBooks, addNewBook, editUpdateBook , deleteBook} from "../../Redux/slices/allbookSlice"
 import { useDispatch, useSelector } from "react-redux"
 import * as Yup from 'yup';
 
@@ -236,7 +236,7 @@ function FileUploadZone({ initialValue, onChange }) {
           setProgress(100)
           setUploading(false)
           setPreviewUrl(resultUrl)
-          onChange(resultUrl)
+          onChange({ url: resultUrl, file: file })
         } else {
           setProgress(currentProgress)
         }
@@ -247,10 +247,12 @@ function FileUploadZone({ initialValue, onChange }) {
 
   const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true) }
   const handleDragLeave = () => setIsDragging(false)
-  const handleDrop = (e) => { e.preventDefault(); setIsDragging(false); const file = e.dataTransfer.files?.[0]; processFile(file) }
+  const handleDrop = (e) => { e.preventDefault(); setIsDragging(false); 
+  const file = e.dataTransfer.files?.[0]; processFile(file) }
   const handleFileChange = (e) => { const file = e.target.files?.[0]; processFile(file) }
   const triggerSelect = () => fileInputRef.current?.click()
-  const removeImage = (e) => { e.stopPropagation(); setPreviewUrl(""); setProgress(0); onChange(""); if (fileInputRef.current) fileInputRef.current.value = "" }
+  const removeImage = (e) => { e.stopPropagation(); setPreviewUrl(""); setProgress(0); onChange({ url: "", file: null });  
+  if (fileInputRef.current) fileInputRef.current.value = "" }
 
   return (
     <div className="space-y-2">
@@ -453,7 +455,7 @@ export default function BookList() {
   }
 
   const bookValidationSchema = Yup.object().shape({
-    image: Yup.mixed().required("Book Image is required"),
+    //book_image: Yup.mixed().required("Book Image is required"),
     book_name: Yup.string().trim().required("Book Name is required"),
     book_price: Yup.string()
       .trim()
@@ -505,7 +507,7 @@ export default function BookList() {
       }
 
 
-     const savedBook = dispatch(addNewBook(formData));
+      dispatch(addNewBook(formData));
          
       // Close modal
       setAddOpenModel(false);
@@ -519,7 +521,7 @@ export default function BookList() {
         confirmLabel: "Done",
         onConfirm: () => setConfirmState(p => ({ ...p, open: false })),
         onCancel: null,
-        userPreview: savedBook
+        userPreview: addForm
       });
 
       showToast(`"${addForm.book_name}" added!`, "success");
@@ -537,33 +539,29 @@ export default function BookList() {
       book_year: user.book_year,
       book_author: user.book_author, 
       is_delete: user.is_delete, 
-      book_image: user.book_image || ""
+      image: user.book_image_url || "",
+      imageFile:  null
     })
+    console.log(user.book_id);
+    
     setEditingId(user.book_id)
     setEditOpen(true) 
   }
 
   const initiateEditConfirm = () => {
-    if (!editForm.name || !editForm.email) {
-      showToast("Name and Email are required.", "error")
-      return
-    }
-    if (editForm.password && editForm.password !== editForm.confirmPassword) {
-      showToast("Passwords do not match.", "error")
-      return
-    }
-
-    const original = allBooks.find(u => u.id === editingId)
+    
+    const original = allBooks.find(u => u.book_id === editingId)
     const detectedChanges = []
     if (original) {
-      if (original.book_name !== editForm.book_name) detectedChanges.push({ field: "Name", from: original.book_name, to: editForm.book_name })
-      if (original.email !== editForm.email) detectedChanges.push({ field: "Email", from: original.email, to: editForm.email })
-      if (original.role !== editForm.role) detectedChanges.push({ field: "Role", from: original.role, to: editForm.role })
-      if (original.status !== editForm.status) detectedChanges.push({ field: "Status", from: original.status, to: editForm.status })
-      if (original.phone !== editForm.phone) detectedChanges.push({ field: "Phone", from: original.phone || "empty", to: editForm.phone || "empty" })
-      if (original.image !== editForm.image) detectedChanges.push({ field: "Profile Image", from: original.image ? "Uploaded image" : "Default", to: editForm.image ? "New upload" : "Default" })
+      if (original.book_name !== editForm.book_name) detectedChanges.push({ field: "book_name", from: original.book_name, to: editForm.book_name })
+      if (original.book_price !== editForm.book_price) detectedChanges.push({ field: "book_price", from: original.book_price, to: editForm.book_price })
+      if (original.book_year !== editForm.book_year) detectedChanges.push({ field: "book_year", from: original.book_year, to: editForm.book_year })
+      if (original.book_author !== editForm.book_author) detectedChanges.push({ field: "book_author", from: original.book_author, to: editForm.book_author })
+      if (original.image !== editForm.image) detectedChanges.push({ field: "image", from: original.image ? "Uploaded image" : "Default", to: editForm.image ? "New upload" : "Default" })
     }
 
+    console.log(detectedChanges);
+    
     if (detectedChanges.length === 0) {
       setEditOpen(false)
       showToast("No configuration changes detected.", "info")
@@ -582,18 +580,22 @@ export default function BookList() {
     })
   }
 
-  const executeEditSave = (changesApplied) => {
-    const updatedUser = {
-      id: editingId,
-      name: editForm.name,
-      email: editForm.email,
-      phone: editForm.phone || "N/A",
-      role: editForm.role,
-      status: editForm.status,
-      image: editForm.image
-    }
+  const executeEditSave = () => {
+    const formData = new FormData();
+    console.log(editingId,"editingId");
+    
+      formData.append("book_id",     editingId);
+      formData.append("book_name",   editForm.book_name);
+      formData.append("book_price",  editForm.book_price);
+      formData.append("book_author", editForm.book_author);
+      formData.append("book_year",   editForm.book_year);
 
-    dispatch(editUserAction(updatedUser));
+      // Append actual file (not base64)
+      if (editForm.imageFile) {
+        formData.append("image", editForm.imageFile); // key must match your API
+      }
+
+    dispatch(editUpdateBook(formData));
     setEditOpen(false)
 
     setConfirmState({
@@ -604,30 +606,36 @@ export default function BookList() {
       confirmLabel: "Return to Users",
       onConfirm: () => setConfirmState(p => ({ ...p, open: false })),
       onCancel: null,
-      userPreview: updatedUser
+       userPreview: {
+            book_name:   editForm.book_name,
+            book_price:  editForm.book_price,
+            book_author: editForm.book_author,
+            book_year : editForm.book_year,
+            image:  editForm.image  // ✅ base64 preview in success card
+        }
     })
     showToast(`${editForm.name} profile modified.`, "success")
   }
 
   // ── FLOW: DELETE USER ─────────────────────────────────────────────────────
-  const askDelete = (userId) => {
-    const user = allBooks.find(u => u.id === userId)
+  const askDelete = (bookId) => {
+    const book = allBooks.find(u => u.book_id === bookId)
     setConfirmState({
       open: true,
       type: "danger",
-      title: `Permanently Delete ${user?.name || "User"}?`,
+      title: `Permanently Delete ${book?.book_name || "User"}?`,
       message: "This operation is irreversible. The record and associated authentication details will be permanently wiped.",
       confirmLabel: "Delete Record",
       onCancel: () => {
         setConfirmState(p => ({ ...p, open: false }))
         showToast("Deletion canceled.", "info")
       },
-      onConfirm: () => executeDelete(userId)
+      onConfirm: () => executeDelete(bookId)
     })
   }
 
-  const executeDelete = (userId) => {
-    dispatch(deleteUserAction(userId));
+  const executeDelete = (bookId) => {
+    dispatch(deleteBook(bookId));
     setConfirmState(p => ({ ...p, open: false }))
     showToast("User record permanently purged.", "success")
   }
@@ -697,7 +705,7 @@ export default function BookList() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50/50">
               <tr>
-                {["#", "User Profile", "Email Address", "Access Assignment", "Security Status", "Actions"].map((h, i) => (
+                {["#", "Book Details", "Book Price", "Book Author", "Book Year","Book Status", "Actions"].map((h, i) => (
                   <th key={h} className={`px-6 py-4.5 text-xs font-bold text-gray-400 uppercase tracking-wider ${i === 5 ? "text-right" : "text-left"}`}>
                     {h}
                   </th>
@@ -722,33 +730,24 @@ export default function BookList() {
                       <td className="px-6 py-4.5 text-xs font-semibold text-gray-400">{rowNumber}</td>
                       <td className="px-6 py-4.5">
                         <div className="flex items-center gap-3">
-                          <UserAvatar name={user.name} image={user.image} />
+                          <UserAvatar name={user.book_name} image={user.book_image_url} />
                           <div>
-                            <p className="text-sm font-bold text-gray-900 leading-none">{user.name}</p>
-                            <p className="text-xs text-gray-400 mt-1 font-medium">{user.phone || "No phone added"}</p>
+                            <p className="text-sm font-bold text-gray-900 leading-none">{user.book_name}</p>
+                            <p className="text-xs text-gray-400 mt-1 font-medium">{user.book_price || "No phone added"}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4.5 text-sm font-medium text-gray-600">{user.email}</td>
-                      <td className="px-6 py-4.5 text-sm">
-                        <span className={`inline-flex items-center px-2.5 py-1.5 rounded-lg text-xs font-bold ${
-                          user.role === "Admin" 
-                            ? "bg-indigo-50 text-indigo-700" 
-                            : user.role === "Manager"
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-amber-50 text-amber-700"
-                        }`}>
-                          {user.role}
-                        </span>
-                      </td>
+                      <td className="px-6 py-4.5 text-sm font-medium text-gray-600">{user.book_price}</td>
+                      <td className="px-6 py-4.5 text-sm font-medium text-gray-600">{user.book_author}</td>
+                      <td className="px-6 py-4.5 text-sm font-medium text-gray-600">{user.book_year}</td>
                       <td className="px-6 py-4.5 text-sm">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold ${
-                          user.status === "Active" 
+                          user.is_delete === "Active" 
                             ? "bg-green-50 text-green-700 border border-green-100" 
                             : "bg-rose-50 text-rose-700 border border-rose-100"
                         }`}>
-                          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${user.status === "Active" ? "bg-green-500" : "bg-rose-500"}`} />
-                          {user.status}
+                          <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${user.is_delete === "Active" ? "bg-green-500" : "bg-rose-500"}`} />
+                          {user.is_delete}
                         </span>
                       </td>
                       <td className="px-6 py-4.5 text-right text-sm">
@@ -763,7 +762,7 @@ export default function BookList() {
                             </svg>
                           </button>
                           <button
-                            onClick={() => askDelete(user.id)}
+                            onClick={() => askDelete(user.book_id)}
                             className="p-2 text-gray-400 hover:text-rose-600 rounded-lg hover:bg-gray-50 transition"
                             title="Purge User Profile"
                           >
@@ -978,80 +977,51 @@ export default function BookList() {
           </div>
 
           <div className="space-y-4.5 py-4 overflow-y-auto max-h-[70vh] px-1">
-            <FileUploadZone initialValue={editForm.image} onChange={(url) => updateFormField(setEditForm, "image", url)} />
+            <FileUploadZone 
+                initialValue={editForm.image}   
+                onChange={({ url, file }) => {  {/* ✅ Fixed: was receiving string, now object */}
+                    setEditForm(prev => ({ 
+                        ...prev, 
+                        image:     url,   // base64 for preview
+                        imageFile: file   // File object for FormData
+                    }))
+                }} 
+            />
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Full Name</label>
+                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Book Name</label>
                 <input
                   type="text"
-                  value={editForm.name}
-                  onChange={(e) => updateFormField(setEditForm, "name", e.target.value)}
+                  value={editForm.book_name}
+                  onChange={(e) => updateFormField(setEditForm, "book_name", e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none font-medium"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Phone Details</label>
+                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Book Price</label>
                 <input
                   type="text"
-                  value={editForm.phone}
-                  onChange={(e) => updateFormField(setEditForm, "phone", e.target.value)}
+                  value={editForm.book_price}
+                  onChange={(e) => updateFormField(setEditForm, "book_price", e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Email Address</label>
-              <input
-                type="email"
-                value={editForm.email}
-                onChange={(e) => updateFormField(setEditForm, "email", e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Assigned Role</label>
-                <select
-                  value={editForm.role}
-                  onChange={(e) => updateFormField(setEditForm, "role", e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-semibold text-gray-700"
-                >
-                  <option value="Admin">Admin</option>
-                  <option value="Manager">Manager</option>
-                  <option value="Viewer">Viewer</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Security Status</label>
-                <select
-                  value={editForm.status}
-                  onChange={(e) => updateFormField(setEditForm, "status", e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-semibold text-gray-700"
-                >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </div>
-            </div>
-
             <div className="bg-gray-50 p-3.5 rounded-xl border border-gray-150">
-              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">Update Password (Optional)</span>
+              <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">Book Year</span>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <input
-                  type="password"
-                  value={editForm.password}
-                  onChange={(e) => updateFormField(setEditForm, "password", e.target.value)}
-                  placeholder="New password"
+                  type="text"
+                  value={editForm.book_year}
+                  onChange={(e) => updateFormField(setEditForm, "book_year", e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none"
                 />
                 <input
-                  type="password"
-                  value={editForm.confirmPassword}
-                  onChange={(e) => updateFormField(setEditForm, "confirmPassword", e.target.value)}
-                  placeholder="Confirm new password"
+                  type="text"
+                  value={editForm.book_author}
+                  onChange={(e) => updateFormField(setEditForm, "book_author", e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-xs bg-white focus:outline-none"
                 />
               </div>
@@ -1069,7 +1039,7 @@ export default function BookList() {
               onClick={initiateEditConfirm}
               className="px-5 py-2 text-sm font-semibold rounded-xl bg-indigo-600 text-white shadow-sm hover:bg-indigo-700 transition"
             >
-              Verify Modifications
+              Update
             </button>
           </div>
         </div>
