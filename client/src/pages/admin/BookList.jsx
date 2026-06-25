@@ -429,10 +429,10 @@ export default function BookList() {
   const dispatch = useDispatch();
 
   const [addOpenModel, setAddOpenModel] = useState(false)
-  const allUsers = useSelector((state) => state.alluser?.allusers ?? []);
+  const allBooks = useSelector((state) => state.allbook?.allbooks ?? []);
 
   useEffect(() => {
-    dispatch(getAllUsers());
+    dispatch(getAllBooks());
   }, [dispatch])
 
   // ── Form State Blueprints ──
@@ -479,18 +479,18 @@ export default function BookList() {
   const [pageSize, setPageSize]       = useState(10)
   const [currentPage, setCurrentPage] = useState(1)
 
-  const filteredUsers = useMemo(() => {
+  const filteredBooks = useMemo(() => {
     const term = search.toLowerCase().trim()
-    if (!term) return allUsers
-    return allUsers.filter(u =>
+    if (!term) return allBooks
+    return allBooks.filter(u =>
       u.name.toLowerCase().includes(term) ||
       u.email.toLowerCase().includes(term) ||
       u.role.toLowerCase().includes(term) ||
       u.status.toLowerCase().includes(term)
     )
-  }, [allUsers, search])
+  }, [allBooks, search])
 
-  const totalCount = filteredUsers.length
+  const totalCount = filteredBooks.length
 
   const totalPages = useMemo(() => {
     if (pageSize === 0) return 1
@@ -498,10 +498,10 @@ export default function BookList() {
   }, [totalCount, pageSize])
 
   const paginatedUsers = useMemo(() => {
-    if (pageSize === 0) return filteredUsers
+    if (pageSize === 0) return filteredBooks
     const start = (currentPage - 1) * pageSize
-    return filteredUsers.slice(start, start + pageSize)
-  }, [filteredUsers, currentPage, pageSize])
+    return filteredBooks.slice(start, start + pageSize)
+  }, [filteredBooks, currentPage, pageSize])
 
   const handleSearchChange    = (e) => { setSearch(e.target.value); setCurrentPage(1) }
   const handlePageSizeChange  = (e) => { setPageSize(e.target.value === "all" ? 0 : Number(e.target.value)); setCurrentPage(1) }
@@ -700,7 +700,7 @@ export default function BookList() {
           className="inline-flex items-center justify-center px-4.5 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transform hover:-translate-y-0.5 transition-all duration-150"
         >
           <span className="mr-2 text-lg font-light leading-none">+</span>
-          Add User Account
+          Add Book
         </button>
       </div>
 
@@ -890,88 +890,50 @@ export default function BookList() {
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Full Name *</label>
+                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Book Name *</label>
                 <input
                   type="text"
                   value={addForm.name}
                   onChange={(e) => updateFormField(setAddForm, "name", e.target.value)}
-                  placeholder="e.g. Arlene McCoy"
+                  placeholder="Book Name"
                   className="w-full border border-gray-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Contact Phone *</label>
+                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Book Prize *</label>
                 <input
                   type="text"
                   value={addForm.phone}
                   onChange={(e) => updateFormField(setAddForm, "phone", e.target.value)}
-                  placeholder="e.g. (205) 555-0118"
+                  placeholder="Book Prize"
                   className="w-full border border-gray-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                 />
               </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Email Address *</label>
-              <input
-                type="email"
-                value={addForm.email}
-                onChange={(e) => updateFormField(setAddForm, "email", e.target.value)}
-                placeholder="arlene.mccoy@company.com"
-                className="w-full border border-gray-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              />
-            </div>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Assigned Role</label>
-                <select
-                  value={addForm.role}
-                  onChange={(e) => updateFormField(setAddForm, "role", e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-medium text-gray-700"
-                >
-                  <option value="Admin">Admin</option>
-                  <option value="Manager">Manager</option>
-                  <option value="Viewer">Viewer</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Security Status</label>
-                <select
-                  value={addForm.status}
-                  onChange={(e) => updateFormField(setAddForm, "status", e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white font-medium text-gray-700"
-                >
-                  <option value="Active">Active</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Password *</label>
+                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Book Year</label>
                 <input
-                  type="password"
-                  value={addForm.password}
-                  onChange={(e) => updateFormField(setAddForm, "password", e.target.value)}
-                  placeholder="••••••••"
+                  type="text"
+                  value={addForm.email}
+                  onChange={(e) => updateFormField(setAddForm, "email", e.target.value)}
+                  placeholder="Book Year"
                   className="w-full border border-gray-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Confirm Password *</label>
+                <label className="block text-xs font-bold uppercase text-gray-500 mb-1">Book Author</label>
                 <input
-                  type="password"
-                  value={addForm.confirmPassword}
-                  onChange={(e) => updateFormField(setAddForm, "confirmPassword", e.target.value)}
-                  placeholder="••••••••"
+                  type="text"
+                  value={addForm.email}
+                  onChange={(e) => updateFormField(setAddForm, "email", e.target.value)}
+                  placeholder="Book Author"
                   className="w-full border border-gray-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                 />
               </div>
             </div>
           </div>
-
           <div className="flex justify-end gap-2.5 pt-4 border-t border-gray-100">
             <button
               onClick={() => setAddOpenModel(false)}
@@ -983,7 +945,7 @@ export default function BookList() {
               onClick={initiateAddConfirm}
               className="px-5 py-2 text-sm font-semibold rounded-xl bg-indigo-600 text-white shadow-sm hover:bg-indigo-750 transition"
             >
-              Verify Profile & Register
+              Save Book
             </button>
           </div>
         </div>
