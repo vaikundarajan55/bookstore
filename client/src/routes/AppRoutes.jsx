@@ -2,7 +2,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { Suspense } from 'react'
-import { Login, Dashboard, UserList ,MainLayout, BookList, Home} from '../lazyImports'
+import { Login, Dashboard, UserList ,MainLayout,WebLayout, BookList, Home} from '../lazyImports'
 
 const Loader = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -16,19 +16,18 @@ function AppRoutes() {
   return (
     <Suspense fallback={<Loader />}>
       <Routes>
-         <Route path="/" element={<Home />} />
+        
+         {/* Public Web Routes with WebLayout */}
+        <Route element={<WebLayout />}>
+          <Route path="/" element={<Home />} />
+        </Route>
+
         <Route path="/admin"  element={isLoggedIn ? (<Navigate to="/admin/dashboard" replace/>) : (<Login />) } />
-         {/* /admin Redirect */}
-        {/* <Route path="/admin" element={ <Navigate to={isLoggedIn ? "/admin/dashboard" : "/admin/login"}
-              replace/>}
-        /> */}
         {/* Protected Routes with MainLayout */}
         <Route element={ isLoggedIn ? <MainLayout /> : <Navigate to="/admin" replace />} >
-        
           <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/userlist" element={<UserList />} />
           <Route path="/admin/booklist" element={<BookList />} />
-
         </Route>
         {/* Default Redirect */}
         <Route path="*" element={ <Navigate to="/" replace /> } />
