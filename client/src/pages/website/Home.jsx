@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Slider from '../../componentsweb/Slider';
+import { useDispatch, useSelector } from "react-redux";
+import { getAllBooksData } from "../../Redux/slices/allbookSlice";
 
 const books = [
   { title: "The Glass Meridian",    author: "C. Adeyemi", price: "₹499", rating: "★★★★★", genre: "fiction", bg: "#EEEDFE", color: "#26215C" },
@@ -12,6 +14,15 @@ const genres = ["all", "fiction", "sci-fi", "mystery"];
 
 export default function Home() {
   const [activeGenre, setActiveGenre] = useState("all");
+  const dispatch   = useDispatch();
+
+    const allBooks = useSelector((state) => state.allbook?.allbooks ?? []);
+  console.log(allBooks,"allBooks");
+
+  useEffect(() => {
+     dispatch(getAllBooksData());
+  });
+
 
   const filteredBooks = activeGenre === "all"
     ? books
