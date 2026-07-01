@@ -16,12 +16,12 @@ export default function Home() {
   const [activeGenre, setActiveGenre] = useState("all");
   const dispatch   = useDispatch();
 
-    const allBooks = useSelector((state) => state.allbook?.allbooks ?? []);
+  const allBooks = useSelector((state) => state.allbook?.allbooks ?? []);
   console.log(allBooks,"allBooks");
 
-  useEffect(() => {
+   useEffect(() => {
      dispatch(getAllBooksData());
-  });
+  }); 
 
 
   const filteredBooks = activeGenre === "all"
