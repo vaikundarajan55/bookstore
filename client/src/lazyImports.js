@@ -10,6 +10,8 @@ export const BookList = lazy(() => import('./pages/admin/BookList'))
 export const SignIn = lazy(() => import('./pages/website/SignIn'))
 export const SignUp = lazy(() => import('./pages/website/SignUp'))
 export const Cart = lazy(() => import('./pages/website/Cart'))
+export const Checkout = lazy(() => import('./pages/website/Checkout'))
+export const ShopList = lazy(() => import('./pages/website/ShopList'))
 
 /* export const Register = lazy(() => import('./pages/Register'))
 
