@@ -8,7 +8,7 @@ export const store = configureStore({
         auth: authReducer,
         alluser: alluserReducer,
         allbook: allbookReducer,
-        website: websiteReducer,
+        allwebsitedata: websiteReducer,
     },
 });
 

@@ -5,7 +5,7 @@ import { getShopBooksList} from "../controllers/websiteController.js";
 
 const router = express.Router()
 
-router.get('/getshopbooks', auth , getShopBooksList );
+router.get('/getshopbooks', getShopBooksList );
 
 
 export default router;

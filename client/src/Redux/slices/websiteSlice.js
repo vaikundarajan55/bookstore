@@ -6,15 +6,11 @@ export const getAllBooksData = createAsyncThunk(
     async (_, { rejectWithValue, getState}) => {
         try {
             const { auth } = getState();
-            const token = auth.token;
-            if (!token) {
-                return rejectWithValue('Authentication token is missing.');
-            }
+            const token = auth?.token;
+
             const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
             const response = await axios.get(`${API_URL}/api/allwebsite/getshopbooks`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
             });
             return response.data;
         } catch (error) {
@@ -41,6 +37,8 @@ const websiteSlice = createSlice({
                 state.error = null;
             })
             .addCase(getAllBooksData.fulfilled, (state, action) => {
+                console.log("Reducer got payload:", action.payload);
+   
                 state.status = "succeeded";
                 state.allwebsite = Array.isArray(action.payload.shopbook)
                     ? action.payload.shopbook
