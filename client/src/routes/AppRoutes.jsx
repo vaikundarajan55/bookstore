@@ -2,7 +2,8 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { Suspense } from 'react'
-import { Login, Dashboard, UserList ,MainLayout,WebLayout, BookList, Home} from '../lazyImports'
+import { Login, Dashboard, UserList ,MainLayout,WebLayout, BookList, Home, SignIn, SignUp, Cart} from '../lazyImports'
+
 
 const Loader = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -20,6 +21,9 @@ function AppRoutes() {
          {/* Public Web Routes with WebLayout */}
         <Route element={<WebLayout />}>
           <Route path="/" element={<Home />} />
+          <Route path="/signin" element={<SignIn />} />
+          <Route path="/register" element={<SignUp />} />
+          <Route path="/cart" element={<Cart />} />
         </Route>
 
         <Route path="/admin"  element={isLoggedIn ? (<Navigate to="/admin/dashboard" replace/>) : (<Login />) } />
